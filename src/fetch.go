@@ -21,6 +21,74 @@ func fetchContents(link string) error {
 	}
 	defer resp.Body.Close()
 
+	// Check for non-success response
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var errMsg struct {
+			Message string `json:"message"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&errMsg); err != nil {
+			return fmt.Errorf("failed request with status %d", resp.StatusCode)
+		}
+		return fmt.Errorf("API error: %s", errMsg.Message)
+	}
+
+	var repo struct {
+		DefaultBranch string `json:"default_branch"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&repo); err != nil {
+		return err
+	}
+	selectedBranch = repo.DefaultBranch
+
+	// Fetch all branch names
+	resp, err = hitHttpRequest(branchesLink)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var errMsg struct {
+			Message string `json:"message"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&errMsg); err != nil {
+			return fmt.Errorf("failed request with status %d", resp.StatusCode)
+		}
+		return fmt.Errorf("API error: %s", errMsg.Message)
+	}
+
+	var branchList []struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&branchList); err != nil {
+		return err
+	}
+
+	branches = make([]string, len(branchList))
+	for i, b := range branchList {
+		branches[i] = b.Name
+	}
+	log.Println("branches ", branches)
+	log.Println("selected branch 1  ", selectedBranch)
+
+	return nil
+}
+
+func fetchContents_(link string) error {
+	mainLink, branchesLink, err := getUrls(link)
+	if err != nil {
+		return err
+	}
+	log.Println("mainLink ", mainLink)
+	log.Println("branchesLink ", branchesLink)
+
+	// Fetch repository info to get default_branch
+	resp, err := hitHttpRequest(mainLink)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
 	var repo struct {
 		DefaultBranch string `json:"default_branch"`
 	}
@@ -49,13 +117,14 @@ func fetchContents(link string) error {
 		branches[i] = b.Name
 	}
 	log.Println("branches ", branches)
-	log.Println("selected branch  ", selectedBranch)
+	log.Println("selected branch 1  ", selectedBranch)
 
 	return nil
 }
 
 func fetchContentAtPath(owner, repo, branch, path string) ([]Content, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, path, branch)
+	log.Println("fetchContentAtPath url", url)
 
 	resp, err := hitHttpRequest(url)
 	if err != nil {
