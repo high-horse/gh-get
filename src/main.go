@@ -20,13 +20,78 @@ func main() {
 		})
 
 	mainTextTitle := tview.NewTextView().
-		SetText("Main content - waiting for input...").
+		// SetText("Main content - waiting for input...").
 		SetDynamicColors(true)
+
+	tree := tview.NewTreeView()
+	tree.SetBorder(false).SetBorderPadding(0, 0, 5 ,0)
+	tree.SetTitle("Repository Contents")
+
+	tree.SetSelectedFunc(func(node *tview.TreeNode) {
+		ref := node.GetReference()
+		if ref == nil {
+			return
+		}
+
+		c := ref.(*Content)
+
+		if !c.IsDir {
+			log.Println("Download:", c.DownloadUrl)
+			return
+		}
+
+		if c.Fetched {
+			node.SetExpanded(!node.IsExpanded())
+			return
+		}
+
+		children, err := fetchContentAtPath(owner, reponame, selectedBranch, c.Path)
+		if err != nil {
+			log.Println("error:", err)
+			return
+		}
+
+		c.Children = children
+		c.Fetched = true
+
+		node.ClearChildren()
+		buildTree(node, c.Children)
+		node.SetExpanded(true)
+	})
+	tree.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
+
+			node := tree.GetCurrentNode()
+			if node == nil {
+				return nil
+			}
+
+			ref := node.GetReference()
+			if ref == nil {
+				return nil
+			}
+
+			c := ref.(*Content)
+
+			if c.IsDir {
+				toggleRecursive(c, !c.Selected)
+			} else {
+				c.Selected = !c.Selected
+			}
+			// update label
+			//
+			node.SetText(formatLabel(c))
+
+			return nil // consume event
+		}
+		return event
+	})
 
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(mainTextTitle, 0, 1, false).
-		AddItem(dropdown, 3, 0, true)
+		// AddItem(mainTextTitle, 0, 1, false).
+		AddItem(dropdown, 3, 0, false).
+		AddItem(tree, 0, 5, true)
 
 	mainContent.SetBorder(true).
 		SetTitle("Main Page").
@@ -34,9 +99,31 @@ func main() {
 
 	// switchToMain is a callback passed into dialogPage
 	switchToMain := func() {
-		mainContent.SetTitle(fmt.Sprintf("  %s :: %s/%s  ", selectedBranch, username, reponame))
+		mainContent.SetTitle(fmt.Sprintf("  %s :: %s/%s  ", selectedBranch, owner, reponame))
+
+		rootContents, err := fetchContentAtPath(owner, reponame, selectedBranch, "")
+		if err != nil {
+			log.Println("error fetching root:", err)
+			return
+		}
+
+		rootNode := tview.NewTreeNode(fmt.Sprintf("%s/%s", owner, reponame)).
+			SetColor(tcell.ColorGreen)
+
+		buildTree(rootNode, rootContents)
+
+		tree.SetRoot(rootNode).SetCurrentNode(rootNode)
+
 		app.SetRoot(mainContent, true)
-		app.SetFocus(dropdown)
+		// app.QueueUpdateDraw(func() {
+		// 	app.SetFocus(tree)
+		// })
+		go func() {
+			app.QueueUpdateDraw(func() {
+				app.SetFocus(tree)
+			})
+		}()
+		// app.SetFocus(tree)
 	}
 
 	// Start with the dialog, switch to main after input
@@ -44,6 +131,58 @@ func main() {
 
 	if err := app.SetRoot(dialog, true).Run(); err != nil {
 		panic(err)
+	}
+}
+
+func buildTree(parent *tview.TreeNode, contents []Content) {
+	for i := range contents {
+		c := &contents[i]
+
+		label := formatLabel(c)
+
+		node := tview.NewTreeNode(label).
+			SetReference(c)
+
+		if c.IsDir {
+			node.SetColor(tcell.ColorBlue)
+			// node.AddChild(tview.NewTreeNode("loading..."))
+		} else {
+			node.SetColor(tcell.ColorWhite)
+		}
+
+		parent.AddChild(node)
+	}
+}
+
+func formatLabel(c *Content) string {
+	check := "[ ]"
+	if c.Selected {
+		check = "[ ✓ ]"
+	}
+
+	// escape brackets for tview
+	check = tview.Escape(check)
+
+	if c.IsDir {
+		return fmt.Sprintf("%s 📁 %s", check, c.Name)
+	}
+	return fmt.Sprintf("%s %s", check, c.Name)
+}
+
+func collectSelected(contents []Content, result *[]Content) {
+	for _, c := range contents {
+		if c.IsDir {
+			collectSelected(c.Children, result)
+		} else if c.Selected {
+			*result = append(*result, c)
+		}
+	}
+}
+
+func toggleRecursive(c *Content, selected bool) {
+	c.Selected = selected
+	for i := range c.Children {
+		toggleRecursive(&c.Children[i], selected)
 	}
 }
 
@@ -64,9 +203,10 @@ func dialogPage(app *tview.Application, mainTextTitle *tview.TextView, switchToM
 		}
 		errorText.SetText("")
 		url = text
-		mainTextTitle.SetText("You entered " + text)
+		// mainTextTitle.SetText("You entered " + text)
 
 		if err := fetchContents(text); err != nil {
+			log.Println()
 			errorText.SetText("Failed to fetch branches: " + err.Error())
 			return
 		}

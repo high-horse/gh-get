@@ -2,8 +2,12 @@ package main
 
 type Content struct {
 	Name        string
+	Path        string
 	IsDir       bool
 	DownloadUrl string
+	Children    []Content
+	Fetched     bool
+	Selected    bool
 }
 
 var (
@@ -11,6 +15,6 @@ var (
 	branches       []string
 	selectedBranch string
 	contents       []Content
-	username       string
+	owner          string
 	reponame       string
 )

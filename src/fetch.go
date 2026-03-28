@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -10,6 +11,8 @@ func fetchContents(link string) error {
 	if err != nil {
 		return err
 	}
+	log.Println("mainLink ", mainLink)
+	log.Println("branchesLink ", branchesLink)
 
 	// Fetch repository info to get default_branch
 	resp, err := hitHttpRequest(mainLink)
@@ -51,6 +54,61 @@ func fetchContents(link string) error {
 	return nil
 }
 
-func fetchRepoContents(url string) error {
-	return  nil
+func fetchContentAtPath(owner, repo, branch, path string) ([]Content, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, path, branch)
+
+	resp, err := hitHttpRequest(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var raw []struct {
+		Name        string `json:"name"`
+		Type        string `json:"type"` // "file" or "dir"
+		DownloadUrl string `json:"download_url"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, err
+	}
+
+	contents := make([]Content, len(raw))
+	for i, r := range raw {
+		pathPrefix := path
+		if pathPrefix != "" {
+			pathPrefix += "/"
+		}
+
+		contents[i] = Content{
+			Name:        r.Name,
+			Path:        pathPrefix + r.Name, // ✅ FULL PATH
+			IsDir:       r.Type == "dir",
+			DownloadUrl: r.DownloadUrl,
+			Children:    nil,
+			Fetched:     false,
+		}
+		// contents[i] = Content{
+		// 	Name:        r.Name,
+		// 	IsDir:       r.Type == "dir",
+		// 	DownloadUrl: r.DownloadUrl,
+		// 	Children:    nil,
+		// 	Fetched:     false,
+		// }
+	}
+	return contents, nil
+}
+
+func fetchChildrenIfNeeded(c *Content, owner, repo, branch string) error {
+	if c.Fetched || !c.IsDir {
+		return nil
+	}
+
+	children, err := fetchContentAtPath(owner, repo, branch, c.Path)
+	if err != nil {
+		return err
+	}
+	c.Children = children
+	c.Fetched = true
+	return nil
 }
