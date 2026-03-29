@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+
+	"path/filepath"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -13,11 +16,11 @@ func main() {
 	app := tview.NewApplication().EnableMouse(true)
 
 	mainTextTitle := tview.NewBox().SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-	    text := "INSTRUCTION : <ctrl+q> download and exit | <ctrl+w> exit without download\n"
-	    for i, r := range text {
-	        screen.SetContent(x+i, y, r, nil, tcell.StyleDefault)
-	    }
-	    return 0, 0, width, 1
+		text := "INSTRUCTION : <ctrl+q> download and exit | <ctrl+w> exit without download\n"
+		for i, r := range text {
+			screen.SetContent(x+i, y, r, nil, tcell.StyleDefault)
+		}
+		return 0, 0, width, 1
 	})
 
 	tree := tview.NewTreeView()
@@ -152,9 +155,44 @@ func main() {
 	// Start with the dialog, switch to main after input
 	dialog := dialogPage(app, switchToMain, dropdown, onChangeBranch)
 
+	if err := keyInterceptor(app, tree); err != nil {
+		log.Println("error:", err)
+		return
+	}
 	if err := app.SetRoot(dialog, true).Run(); err != nil {
 		panic(err)
 	}
+}
+
+func keyInterceptor(app *tview.Application, tree *tview.TreeView) error {
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+
+		case tcell.KeyCtrlC:
+			log.Println("Ctrl+c pressed → exit without download")
+			if err := handleDownload(tree); err != nil {
+				log.Println("error:", err)
+			}
+			app.Stop()
+			return nil
+
+		case tcell.KeyCtrlQ:
+			// todo: download
+			log.Println("Ctrl+q downloading...")
+			app.Stop()
+			return nil
+
+		case tcell.KeyCtrlW:
+			log.Println("Ctrl+W pressed → exit without download")
+			app.Stop()
+			return nil
+		}
+
+		return event
+
+	})
+
+	return nil
 }
 
 func buildTree(parent *tview.TreeNode, contents []Content) {
@@ -218,6 +256,20 @@ func formatLabel_(c *Content) string {
 	return fmt.Sprintf("%s %s", check, c.Name)
 }
 
+func collectSelectedFromNode(node *tview.TreeNode, result *[]*Content) {
+	ref := node.GetReference()
+	if ref != nil {
+		c := ref.(*Content)
+		if !c.IsDir && c.Selected {
+			*result = append(*result, c)
+		}
+	}
+
+	for _, child := range node.GetChildren() {
+		collectSelectedFromNode(child, result)
+	}
+}
+
 func collectSelected(contents []Content, result *[]Content) {
 	for _, c := range contents {
 		if c.IsDir {
@@ -245,6 +297,45 @@ func updateNodeLabels(node *tview.TreeNode, c *Content) {
 			updateNodeLabels(childNode, &childContent)
 		}
 	}
+}
+
+func handleDownload(tree *tview.TreeView) error {
+	var selected []*Content
+
+	root := tree.GetRoot()
+	if root == nil {
+		return fmt.Errorf("tree is empty")
+	}
+
+	collectSelectedFromNode(root, &selected)
+
+	if len(selected) == 0 {
+		return fmt.Errorf("no files selected")
+	}
+
+	baseDir := fmt.Sprintf("%s-%s", reponame, selectedBranch)
+
+	for _, file := range selected {
+		if file.IsDir {
+			continue
+		}
+
+		localPath := filepath.Join(baseDir, file.Path)
+
+		if err := os.MkdirAll(filepath.Dir(localPath), os.ModePerm); err != nil {
+			return err
+		}
+
+		log.Println("Downloading:", file.Path)
+
+		if err := downloadFile(file.DownloadUrl, localPath); err != nil {
+			log.Println("failed:", file.Path, err)
+			continue
+		}
+	}
+
+	log.Println("Download complete")
+	return nil
 }
 
 func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.DropDown, onChangeBranch func(string)) tview.Primitive {
@@ -313,7 +404,7 @@ func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.Dro
 	contentFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(formFlex, 4, 0, true).
-		AddItem(errorText, 0, 1, false)  // Takes remaining space
+		AddItem(errorText, 0, 1, false) // Takes remaining space
 
 	// Single border around everything
 	contentFlex.SetBorder(true).
@@ -329,7 +420,7 @@ func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.Dro
 	dialog := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
-		AddItem(centered, 12, 1, true).  // Increased height for error space
+		AddItem(centered, 12, 1, true). // Increased height for error space
 		AddItem(nil, 0, 1, false)
 
 	return dialog
