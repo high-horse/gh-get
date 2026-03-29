@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-
-	"path/filepath"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -105,7 +102,7 @@ func main() {
 		})
 	}
 	dropdown := tview.NewDropDown().
-		SetLabel("Select branch: ").
+		SetLabel("Selected branch: ").
 		SetOptions(branches, func(text string, index int) {
 			log.Println("selected branch 2", text, index)
 			selectedBranch = text
@@ -141,15 +138,12 @@ func main() {
 		tree.SetRoot(rootNode).SetCurrentNode(rootNode)
 
 		app.SetRoot(mainContent, true)
-		// app.QueueUpdateDraw(func() {
-		// 	app.SetFocus(tree)
-		// })
+
 		go func() {
 			app.QueueUpdateDraw(func() {
 				app.SetFocus(tree)
 			})
 		}()
-		// app.SetFocus(tree)
 	}
 
 	// Start with the dialog, switch to main after input
@@ -169,21 +163,16 @@ func keyInterceptor(app *tview.Application, tree *tview.TreeView) error {
 		switch event.Key() {
 
 		case tcell.KeyCtrlC:
-			log.Println("Ctrl+c pressed → exit without download")
+			return nil
+
+		case tcell.KeyCtrlQ:
 			if err := handleDownload(tree); err != nil {
 				log.Println("error:", err)
 			}
 			app.Stop()
 			return nil
 
-		case tcell.KeyCtrlQ:
-			// todo: download
-			log.Println("Ctrl+q downloading...")
-			app.Stop()
-			return nil
-
 		case tcell.KeyCtrlW:
-			log.Println("Ctrl+W pressed → exit without download")
 			app.Stop()
 			return nil
 		}
@@ -256,29 +245,6 @@ func formatLabel_(c *Content) string {
 	return fmt.Sprintf("%s %s", check, c.Name)
 }
 
-func collectSelectedFromNode(node *tview.TreeNode, result *[]*Content) {
-	ref := node.GetReference()
-	if ref != nil {
-		c := ref.(*Content)
-		if !c.IsDir && c.Selected {
-			*result = append(*result, c)
-		}
-	}
-
-	for _, child := range node.GetChildren() {
-		collectSelectedFromNode(child, result)
-	}
-}
-
-func collectSelected(contents []Content, result *[]Content) {
-	for _, c := range contents {
-		if c.IsDir {
-			collectSelected(c.Children, result)
-		} else if c.Selected {
-			*result = append(*result, c)
-		}
-	}
-}
 
 func toggleRecursive(c *Content, selected bool) {
 	c.Selected = selected
@@ -297,45 +263,6 @@ func updateNodeLabels(node *tview.TreeNode, c *Content) {
 			updateNodeLabels(childNode, &childContent)
 		}
 	}
-}
-
-func handleDownload(tree *tview.TreeView) error {
-	var selected []*Content
-
-	root := tree.GetRoot()
-	if root == nil {
-		return fmt.Errorf("tree is empty")
-	}
-
-	collectSelectedFromNode(root, &selected)
-
-	if len(selected) == 0 {
-		return fmt.Errorf("no files selected")
-	}
-
-	baseDir := fmt.Sprintf("%s-%s", reponame, selectedBranch)
-
-	for _, file := range selected {
-		if file.IsDir {
-			continue
-		}
-
-		localPath := filepath.Join(baseDir, file.Path)
-
-		if err := os.MkdirAll(filepath.Dir(localPath), os.ModePerm); err != nil {
-			return err
-		}
-
-		log.Println("Downloading:", file.Path)
-
-		if err := downloadFile(file.DownloadUrl, localPath); err != nil {
-			log.Println("failed:", file.Path, err)
-			continue
-		}
-	}
-
-	log.Println("Download complete")
-	return nil
 }
 
 func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.DropDown, onChangeBranch func(string)) tview.Primitive {
