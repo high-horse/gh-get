@@ -204,47 +204,6 @@ func buildTree(parent *tview.TreeNode, contents []Content) {
 	}
 }
 
-func formatLabel(c *Content) string {
-	check := "[ ]"
-	if c.IsDir {
-		selectedCount := 0
-		for _, child := range c.Children {
-			if child.Selected {
-				selectedCount++
-			}
-		}
-		if selectedCount == len(c.Children) && len(c.Children) > 0 {
-			check = "[ ✓ ]"
-		} else if selectedCount > 0 {
-			check = "[ - ]" // partial
-		}
-	} else if c.Selected {
-		check = "[ ✓ ]"
-	}
-
-	check = tview.Escape(check)
-
-	if c.IsDir {
-		return fmt.Sprintf("%s 📁 %s", check, c.Name)
-	}
-	return fmt.Sprintf("%s %s", check, c.Name)
-}
-
-func formatLabel_(c *Content) string {
-	check := "[ ]"
-	if c.Selected {
-		check = "[ ✓ ]"
-	}
-
-	// escape brackets for tview
-	check = tview.Escape(check)
-
-	if c.IsDir {
-		return fmt.Sprintf("%s 📁 %s", check, c.Name)
-	}
-	return fmt.Sprintf("%s %s", check, c.Name)
-}
-
 
 func toggleRecursive(c *Content, selected bool) {
 	c.Selected = selected
