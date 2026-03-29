@@ -7,7 +7,7 @@
 
 Here’s a screenshot of the app in action:
 
-![Dialog Screenshot](assets/dialog-screenshot.png)
+![Dialog Screenshot](assets/smdialog-screenshot.png)
 
 Another example of the main screen:
 
