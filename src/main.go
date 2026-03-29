@@ -233,7 +233,7 @@ func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.Dro
 
 	urlField := tview.NewInputField().
 		SetLabel("Repo URL: ").
-		SetText("https://github.com/high-horse/c-programming-practice").
+		SetText("https://github.com/"). // high-horse/c-programming-practice
 		SetFieldWidth(50)
 
 	submit := func() {
