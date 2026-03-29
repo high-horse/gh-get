@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -52,10 +52,10 @@ func handleDownload(tree *tview.TreeView) error {
 				return
 			}
 
-			log.Println("Downloading:", file.Path)
+			// log.Println("Downloading:", file.Path)
 
 			if err := downloadFile(file.DownloadUrl, localPath); err != nil {
-				log.Println("failed:", file.Path, err)
+				// log.Println("failed:", file.Path, err)
 				mu.Lock()
 				errors = append(errors, fmt.Errorf("failed to download %s: %w", file.Path, err))
 				mu.Unlock()
@@ -71,7 +71,7 @@ func handleDownload(tree *tview.TreeView) error {
 		return fmt.Errorf("some downloads failed: %v", errors)
 	}
 
-	log.Println("Download complete")
+	// log.Println("Download complete")
 	return nil
 }
 
@@ -102,15 +102,15 @@ func handleDownload_(tree *tview.TreeView) error {
 			return err
 		}
 
-		log.Println("Downloading:", file.Path)
+		// log.Println("Downloading:", file.Path)
 
 		if err := downloadFile(file.DownloadUrl, localPath); err != nil {
-			log.Println("failed:", file.Path, err)
+			// log.Println("failed:", file.Path, err)
 			continue
 		}
 	}
 
-	log.Println("Download complete")
+	// log.Println("Download complete")
 	return nil
 }
 

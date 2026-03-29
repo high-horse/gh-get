@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	// "log"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -13,7 +13,7 @@ func main() {
 	app := tview.NewApplication().EnableMouse(true)
 
 	mainTextTitle := tview.NewBox().SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-		text := "INSTRUCTION : <ctrl+q> download and exit | <ctrl+w> exit without download\n"
+		text := "INSTRUCTION : <ctrl+q> or <ctrl+d> for download and exit | <ctrl+w> or <ctrl+c> exit without download\n"
 		for i, r := range text {
 			screen.SetContent(x+i, y, r, nil, tcell.StyleDefault)
 		}
@@ -32,7 +32,7 @@ func main() {
 		c := ref.(*Content)
 
 		if !c.IsDir {
-			log.Println("Download:", c.DownloadUrl)
+			// log.Println("Download:", c.DownloadUrl)
 			return
 		}
 
@@ -43,7 +43,7 @@ func main() {
 
 		children, err := fetchContentAtPath(owner, reponame, selectedBranch, c.Path)
 		if err != nil {
-			log.Println("error:", err)
+			// log.Println("error:", err)
 			return
 		}
 
@@ -87,7 +87,7 @@ func main() {
 	onChangeBranch := func(branch string) {
 		rootContents, err := fetchContentAtPath(owner, reponame, branch, "") // use branch, not selectedBranch
 		if err != nil {
-			log.Println("error fetching branch:", err)
+			// log.Println("error fetching branch:", err)
 			return
 		}
 
@@ -104,7 +104,7 @@ func main() {
 	dropdown := tview.NewDropDown().
 		SetLabel("Selected branch: ").
 		SetOptions(branches, func(text string, index int) {
-			log.Println("selected branch 2", text, index)
+			// log.Println("selected branch 2", text, index)
 			selectedBranch = text
 
 			go onChangeBranch(text)
@@ -126,7 +126,7 @@ func main() {
 
 		rootContents, err := fetchContentAtPath(owner, reponame, selectedBranch, "")
 		if err != nil {
-			log.Println("error fetching root:", err)
+			// log.Println("error fetching root:", err)
 			return
 		}
 
@@ -150,7 +150,7 @@ func main() {
 	dialog := dialogPage(app, switchToMain, dropdown, onChangeBranch)
 
 	if err := keyInterceptor(app, tree); err != nil {
-		log.Println("error:", err)
+		// log.Println("error:", err)
 		return
 	}
 	if err := app.SetRoot(dialog, true).Run(); err != nil {
@@ -163,11 +163,12 @@ func keyInterceptor(app *tview.Application, tree *tview.TreeView) error {
 		switch event.Key() {
 
 		case tcell.KeyCtrlC:
+			app.Stop()
 			return nil
 
 		case tcell.KeyCtrlQ:
 			if err := handleDownload(tree); err != nil {
-				log.Println("error:", err)
+				// log.Println("error:", err)
 			}
 			app.Stop()
 			return nil
@@ -238,7 +239,7 @@ func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.Dro
 	submit := func() {
 		text := urlField.GetText()
 		if !validateRepoLink(text) {
-			log.Println("invalid link ", text)
+			// log.Println("invalid link ", text)
 			errorText.SetText(fmt.Sprintf("Invalid repo link URL:\n%s", text))
 			return
 		}
@@ -246,13 +247,13 @@ func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.Dro
 		url = text
 
 		if err := fetchContents(text); err != nil {
-			log.Println()
+			// log.Println()
 			errorText.SetText("Failed to fetch branches:\n" + err.Error())
 			return
 		}
 
 		dropdown.SetOptions(branches, func(text string, index int) {
-			log.Println("selected branch 3 ", text, index)
+			// log.Println("selected branch 3 ", text, index)
 			go onChangeBranch(text)
 		})
 		for i, b := range branches {
@@ -323,7 +324,7 @@ func dialogPage_(app *tview.Application, switchToMain func(), dropdown *tview.Dr
 	submit := func() {
 		text := urlField.GetText()
 		if !validateRepoLink(text) {
-			log.Println("invalid link ", text)
+			// log.Println("invalid link ", text)
 			errorText.SetText(fmt.Sprintf("Invalid repo link URL: %s", text))
 			return
 		}
@@ -332,14 +333,14 @@ func dialogPage_(app *tview.Application, switchToMain func(), dropdown *tview.Dr
 		// mainTextTitle.SetText("You entered " + text)
 
 		if err := fetchContents(text); err != nil {
-			log.Println()
+			// log.Println()
 			errorText.SetText("Failed to fetch branches: \n" + err.Error())
 			return
 		}
 
 		// Update dropdown options dynamically
 		dropdown.SetOptions(branches, func(text string, index int) {
-			log.Println("selected branch 3 ", text, index)
+			// log.Println("selected branch 3 ", text, index)
 			go onChangeBranch(text)
 		})
 		for i, b := range branches {

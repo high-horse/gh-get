@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	// "log"
 	
 	"io"
 	"net/http"
@@ -16,8 +16,8 @@ func fetchContents(link string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("mainLink ", mainLink)
-	log.Println("branchesLink ", branchesLink)
+	// log.Println("mainLink ", mainLink)
+	// log.Println("branchesLink ", branchesLink)
 
 	// Fetch repository info to get default_branch
 	resp, err := hitHttpRequest(mainLink)
@@ -73,8 +73,8 @@ func fetchContents(link string) error {
 	for i, b := range branchList {
 		branches[i] = b.Name
 	}
-	log.Println("branches ", branches)
-	log.Println("selected branch 1  ", selectedBranch)
+	// log.Println("branches ", branches)
+	// log.Println("selected branch 1  ", selectedBranch)
 
 	return nil
 }
@@ -84,8 +84,8 @@ func fetchContents_(link string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("mainLink ", mainLink)
-	log.Println("branchesLink ", branchesLink)
+	// log.Println("mainLink ", mainLink)
+	// log.Println("branchesLink ", branchesLink)
 
 	// Fetch repository info to get default_branch
 	resp, err := hitHttpRequest(mainLink)
@@ -121,15 +121,15 @@ func fetchContents_(link string) error {
 	for i, b := range branchList {
 		branches[i] = b.Name
 	}
-	log.Println("branches ", branches)
-	log.Println("selected branch 1  ", selectedBranch)
+	// log.Println("branches ", branches)
+	// log.Println("selected branch 1  ", selectedBranch)
 
 	return nil
 }
 
 func fetchContentAtPath(owner, repo, branch, path string) ([]Content, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, path, branch)
-	log.Println("fetchContentAtPath url", url)
+	// log.Println("fetchContentAtPath url", url)
 
 	resp, err := hitHttpRequest(url)
 	if err != nil {

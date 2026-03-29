@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"strings"
 )
 
@@ -13,10 +13,10 @@ func getUrls(link string) (string, string, error) {
 	}
 	tokens, err := tokenize(link)
 	if err != nil {
-		log.Println("error ", err)
+		// log.Println("error ", err)
 		return "" ,"", err
 	}
-	log.Println("checking contains " , link)
+	// log.Println("checking contains " , link)
 	if strings.Contains(link, "github.com") {
 		// https://api.github.com/repos/torvalds/linux/branches
 		owner = tokens[3]
@@ -29,7 +29,7 @@ func getUrls(link string) (string, string, error) {
 }
 
 func tokenize(link string) ([]string, error) {
-	log.Println("Passed to tokenize ", link)
+	// log.Println("Passed to tokenize ", link)
 	tokens := strings.Split(link, "/")
 	
 	if len(tokens) < 3 {
