@@ -10,7 +10,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-xfunc handleDownload(tree *tview.TreeView) error {
+func handleDownload(tree *tview.TreeView) error {
 	var selected []*Content
 
 	root := tree.GetRoot()
