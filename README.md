@@ -15,7 +15,6 @@ Another example of the main screen:
 
 ## Features
 
-- Download the latest release or a specific tag from a GitHub repository.
 - Optional cloning of a repository.
 - Lightweight and fast Go binary, no extra dependencies.
 - Cross-platform support (Linux, macOS, Windows).
