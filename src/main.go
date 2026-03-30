@@ -183,7 +183,7 @@ func keyInterceptor(app *tview.Application, tree *tview.TreeView) error {
 			app.Stop()
 			return nil
 
-		case tcell.KeyCtrlQ:
+		case tcell.KeyCtrlQ, tcell.KeyCtrlD:
 			if err := handleDownload(tree); err != nil {
 				// log.Println("error:", err)
 			}

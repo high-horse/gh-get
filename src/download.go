@@ -9,8 +9,14 @@ import (
 
 	"github.com/rivo/tview"
 )
+func handleDownload(tree *tview.TreeView) error  {
+	if preserveDirTree {
+		return handleDownloadWithDirTreePreserved(tree)
+	} 
+	return handleDownloadWithoutDirTreePreserved(tree)
+}
 
-func handleDownload(tree *tview.TreeView) error {
+func handleDownloadWithDirTreePreserved(tree *tview.TreeView) error {
 	var selected []*Content
 
 	root := tree.GetRoot()
@@ -72,6 +78,67 @@ func handleDownload(tree *tview.TreeView) error {
 	}
 
 	// log.Println("Download complete")
+	return nil
+}
+
+func handleDownloadWithoutDirTreePreserved(tree *tview.TreeView) error {
+	var selected []*Content
+
+	root := tree.GetRoot()
+	if root == nil {
+		return fmt.Errorf("tree is empty")
+	}
+
+	collectSelectedFromNode(root, &selected)
+
+	if len(selected) == 0 {
+		return fmt.Errorf("no files selected")
+	}
+
+	baseDir := reponame // flat download directory
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var errors []error
+
+	for _, file := range selected {
+		if file.IsDir {
+			continue
+		}
+
+		wg.Add(1)
+
+		// capture the variable for closure
+		file := file
+
+		go func() {
+			defer wg.Done()
+
+			// Save all files directly under baseDir, ignoring subdirectories
+			localPath := filepath.Join(baseDir, filepath.Base(file.Path))
+
+			if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("failed to create dir for %s: %w", file.Path, err))
+				mu.Unlock()
+				return
+			}
+
+			if err := downloadFile(file.DownloadUrl, localPath); err != nil {
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("failed to download %s: %w", file.Path, err))
+				mu.Unlock()
+				return
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("some downloads failed: %v", errors)
+	}
+
 	return nil
 }
 
