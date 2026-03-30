@@ -17,4 +17,5 @@ var (
 	contents       []Content
 	owner          string
 	reponame       string
+	preserveDirTree bool = true
 )

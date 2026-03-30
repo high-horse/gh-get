@@ -13,7 +13,7 @@ func main() {
 	app := tview.NewApplication().EnableMouse(true)
 
 	mainTextTitle := tview.NewBox().SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-		text := "INSTRUCTION : <ctrl+q> or <ctrl+d> for download and exit | <ctrl+w> or <ctrl+c> exit without download\n"
+		text := "INSTRUCTION : <ctrl+q> or <ctrl+d> for download and exit | <ctrl+w> or <ctrl+c> exit without download\n" 
 		for i, r := range text {
 			screen.SetContent(x+i, y, r, nil, tcell.StyleDefault)
 		}
@@ -109,11 +109,28 @@ func main() {
 
 			go onChangeBranch(text)
 		})
+	
+	// checkbox := tview.NewCheckbox().SetLabel("Preserve directory tree").
+	// 	SetChecked(preserveDirTree).
+	// 	SetChangedFunc(func(checked bool) {
+	// 		preserveDirTree = checked
+	// 	})
+	checkbox := tview.NewCheckbox().
+	    SetLabel("Preserve directory tree  ").
+	    SetLabelColor(tcell.ColorYellow).
+	    SetFieldTextColor(tcell.ColorGreen).
+	    SetFieldBackgroundColor(tcell.ColorBlack).
+	    SetCheckedString("✓").
+	    SetChecked(preserveDirTree).
+	    SetChangedFunc(func(checked bool) {
+	        preserveDirTree = checked
+	    })   
 
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(mainTextTitle, 1, 0, false).
+		AddItem(mainTextTitle, 2, 0, false).
 		AddItem(dropdown, 3, 0, false).
+		AddItem(checkbox, 0, 1, false).
 		AddItem(tree, 0, 5, true)
 
 	mainContent.SetBorder(true).
