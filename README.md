@@ -1,7 +1,7 @@
 # gh-get
 
 
-`gh-get` is a simple command-line tool written in Go to fetch and download GitHub repositories or releases quickly. Perfect for developers who want a lightweight, no-frills way to retrieve repo assets without cloning or navigating GitHub’s web interface.
+`gh-get` is a simple command-line tool written in Go to fetch and download GitHub repositories' single/partial contents quickly. Perfect for developers who want a lightweight, no-frills way to retrieve repo assets without cloning or navigating GitHub’s web interface just to fetch few files from github.
 
 # Example README Section
 
