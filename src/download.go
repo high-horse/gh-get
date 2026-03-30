@@ -97,9 +97,14 @@ func handleDownloadWithoutDirTreePreserved(tree *tview.TreeView) error {
 
 	baseDir := reponame // flat download directory
 
+	if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create base directory: %w", err)
+	}
+
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var errors []error
+	usedNames := make(map[string]int) // track used filenames
 
 	for _, file := range selected {
 		if file.IsDir {
@@ -107,22 +112,23 @@ func handleDownloadWithoutDirTreePreserved(tree *tview.TreeView) error {
 		}
 
 		wg.Add(1)
-
-		// capture the variable for closure
-		file := file
+		file := file // capture for closure
 
 		go func() {
 			defer wg.Done()
 
-			// Save all files directly under baseDir, ignoring subdirectories
-			localPath := filepath.Join(baseDir, filepath.Base(file.Path))
-
-			if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
-				mu.Lock()
-				errors = append(errors, fmt.Errorf("failed to create dir for %s: %w", file.Path, err))
-				mu.Unlock()
-				return
+			mu.Lock()
+			name := filepath.Base(file.Path)
+			count := usedNames[name]
+			if count > 0 {
+				ext := filepath.Ext(name)
+				base := name[:len(name)-len(ext)]
+				name = fmt.Sprintf("%s(%d)%s", base, count, ext)
 			}
+			usedNames[filepath.Base(file.Path)] = count + 1
+			mu.Unlock()
+
+			localPath := filepath.Join(baseDir, name)
 
 			if err := downloadFile(file.DownloadUrl, localPath); err != nil {
 				mu.Lock()
