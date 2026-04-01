@@ -3,16 +3,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	// "log"
-	
+
 	"io"
 	"net/http"
 	"os"
-
 )
 
 func fetchContents(link string) error {
 	mainLink, branchesLink, err := getUrls(link)
+	strings.TrimSpace(mainLink)
+	strings.TrimSpace(branchesLink)
+	
 	if err != nil {
 		return err
 	}

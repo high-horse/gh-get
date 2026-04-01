@@ -257,7 +257,7 @@ func dialogPage(app *tview.Application, switchToMain func(), dropdown *tview.Dro
 		text := urlField.GetText()
 		if !validateRepoLink(text) {
 			// log.Println("invalid link ", text)
-			errorText.SetText(fmt.Sprintf("Invalid repo link URL:\n%s", text))
+			errorText.SetText(fmt.Sprintf("Invalid repo link URL:\n'%s'", text))
 			return
 		}
 		errorText.SetText("")
